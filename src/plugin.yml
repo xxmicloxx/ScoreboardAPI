@@ -1,9 +1,0 @@
-name: ScoreboardAPI
-main: yt.codebukkit.scoreboardapi.ScoreboardAPI
-version: 1.0.0
-
-description: create your own scoreboards
-authors: [michidk, xxmicloxx]
-contact: michidk@live.de | www.youtube.com/CodeBukkit | www.zeroxcraft.de
-website: http://www.bukkit.org/server-mods/ScoreboadAPI/
-    

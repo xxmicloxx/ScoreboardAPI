@@ -1,22 +1,21 @@
-package yt.codebukkit.scoreboardapi;
+package codebukkit.scoreboardapi;
 
-import net.minecraft.server.v1_5_R1.Packet206SetScoreboardObjective;
-import net.minecraft.server.v1_5_R1.Packet207SetScoreboardScore;
-import net.minecraft.server.v1_5_R1.Packet208SetScoreboardDisplayObjective;
-import net.minecraft.server.v1_5_R1.PlayerConnection;
-import org.bukkit.craftbukkit.v1_5_R1.entity.CraftPlayer;
+import net.minecraft.server.v1_7_R1.Packet;
+import net.minecraft.server.v1_7_R1.PacketPlayOutScoreboardDisplayObjective;
+import net.minecraft.server.v1_7_R1.PacketPlayOutScoreboardObjective;
+import net.minecraft.server.v1_7_R1.PacketPlayOutScoreboardScore;
+import net.minecraft.server.v1_7_R1.PlayerConnection;
+
+import org.bukkit.craftbukkit.v1_7_R1.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 
+import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 
 /**
- * Created with IntelliJ IDEA.
- * User: ml
- * Date: 19.03.13
- * Time: 19:57
- * To change this template use File | Settings | File Templates.
+ * Created with IntelliJ IDEA. User: ml Date: 19.03.13 Time: 19:57 To change this template use File | Settings | File Templates.
  */
 public class Scoreboard {
     Scoreboard(String name, int priority, ScoreboardAPI plugin) {
@@ -24,6 +23,7 @@ public class Scoreboard {
         this.priority = priority;
         this.plugin = plugin;
     }
+
     public enum Type {
         PLAYER_LIST, SIDEBAR
     }
@@ -53,40 +53,57 @@ public class Scoreboard {
 
     public void setScoreboardName(String displayName) {
         this.displayName = displayName;
-        Packet206SetScoreboardObjective pack = new Packet206SetScoreboardObjective();
-        pack.a = name;
-        pack.b = displayName;
-        pack.c = 2;
+        PacketPlayOutScoreboardScore pack = new PacketPlayOutScoreboardScore();
+        setReflectionValue(pack.getClass(), "a", name);
+        setReflectionValue(pack.getClass(), "b", displayName);
+        setReflectionValue(pack.getClass(), "c", 2);
         for (Player p : players) {
             if (!isUnique(p)) {
                 continue;
             }
-            ((CraftPlayer) p).getHandle().playerConnection.sendPacket(pack);
+            sendPacket(p, pack);
         }
+
+    }
+
+    public void sendPacket(Player p, Packet packet) {
+        ((CraftPlayer) p).getHandle().playerConnection.sendPacket(packet);
+    }
+
+    public void setReflectionValue(Class<?> clazz, String to_get, Object value) {
+        try {
+            Field f = clazz.getDeclaredField(to_get);
+            f.setAccessible(true);
+            f.set(null, value);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
     }
 
     public void setItem(String name2, int value) {
         items.put(name2, value);
-        Packet207SetScoreboardScore pack = new Packet207SetScoreboardScore();
-        pack.a = name2;
-        pack.c = value;
-        pack.d = 0;
-        pack.b = name;
+        PacketPlayOutScoreboardScore pack = new PacketPlayOutScoreboardScore();
+        setReflectionValue(pack.getClass(), "a", name2);
+        setReflectionValue(pack.getClass(), "b", name);
+        setReflectionValue(pack.getClass(), "c", value);
+        setReflectionValue(pack.getClass(), "d", 0);
+
         for (Player p : players) {
             if (!isUnique(p)) {
                 continue;
             }
-            ((CraftPlayer) p).getHandle().playerConnection.sendPacket(pack);
+            sendPacket(p, pack);
         }
     }
 
     public void removeItem(String name2) {
         if (items.remove(name2) != null) {
-            Packet207SetScoreboardScore pack = new Packet207SetScoreboardScore();
-            pack.a = name2;
-            pack.c = 0;
-            pack.d = 1;
-            pack.b = name;
+            PacketPlayOutScoreboardScore pack = new PacketPlayOutScoreboardScore();
+            setReflectionValue(pack.getClass(), "a", name2);
+            setReflectionValue(pack.getClass(), "b", name);
+            setReflectionValue(pack.getClass(), "c", 0);
+            setReflectionValue(pack.getClass(), "d", 1);
             for (Player p : players) {
                 if (!isUnique(p)) {
                     continue;
@@ -112,11 +129,11 @@ public class Scoreboard {
             }
         } else {
             if (players.remove(p)) {
-                Packet206SetScoreboardObjective pack = new Packet206SetScoreboardObjective();
-                pack.a = name;
-                pack.b = "";
-                pack.c = 1;
-                ((CraftPlayer) p).getHandle().playerConnection.sendPacket(pack);
+                PacketPlayOutScoreboardObjective pack = new PacketPlayOutScoreboardObjective();
+                setReflectionValue(pack.getClass(), "a", name);
+                setReflectionValue(pack.getClass(), "b", "");
+                setReflectionValue(pack.getClass(), "c", 1);
+                sendPacket(p, pack);
                 plugin.updateForPlayer(p);
             }
         }
@@ -136,23 +153,22 @@ public class Scoreboard {
         if (!isUnique(p)) {
             return;
         }
-        Packet208SetScoreboardDisplayObjective pack2 = new Packet208SetScoreboardDisplayObjective();
-        pack2.a = type.ordinal();
-        pack2.b = name;
-        ((CraftPlayer) p).getHandle().playerConnection.sendPacket(pack2);
+        PacketPlayOutScoreboardDisplayObjective pack2 = new PacketPlayOutScoreboardDisplayObjective();
+        setReflectionValue(pack2.getClass(), "a", type.ordinal());
+        setReflectionValue(pack2.getClass(), "b", name);
+        sendPacket(p, pack2);
     }
 
     public void checkIfNeedsToBeDisabledForPlayer(Player p) {
         if (!players.contains(p)) {
             return;
         }
-        PlayerConnection conn = ((CraftPlayer) p).getHandle().playerConnection;
         if (!isUnique(p)) {
-            Packet206SetScoreboardObjective pack = new Packet206SetScoreboardObjective();
-            pack.a = name;
-            pack.b = displayName;
-            pack.c = 1;
-            conn.sendPacket(pack);
+            PacketPlayOutScoreboardObjective pack = new PacketPlayOutScoreboardObjective();
+            setReflectionValue(pack.getClass(), "a",name);
+            setReflectionValue(pack.getClass(), "b", displayName);
+            setReflectionValue(pack.getClass(), "c", 1);
+            sendPacket(p, pack);
         }
     }
 
@@ -160,25 +176,24 @@ public class Scoreboard {
         if (!players.contains(p)) {
             return;
         }
-        PlayerConnection conn = ((CraftPlayer) p).getHandle().playerConnection;
         if (isUnique(p)) {
-            Packet206SetScoreboardObjective pack = new Packet206SetScoreboardObjective();
-            pack.a = name;
-            pack.b = displayName;
-            pack.c = 0;
-            conn.sendPacket(pack);
+            PacketPlayOutScoreboardObjective pack = new PacketPlayOutScoreboardObjective();
+            setReflectionValue(pack.getClass(), "a",name);
+            setReflectionValue(pack.getClass(), "b", displayName);
+            setReflectionValue(pack.getClass(), "c", 0);
+            sendPacket(p, pack);
             for (String name2 : items.keySet()) {
                 Integer valObj = items.get(name2);
                 if (valObj == null) {
                     continue;
                 }
                 int val = valObj.intValue();
-                Packet207SetScoreboardScore pack2 = new Packet207SetScoreboardScore();
-                pack2.a = name2;
-                pack2.c = val;
-                pack2.d = 0;
-                pack2.b = name;
-                conn.sendPacket(pack2);
+                PacketPlayOutScoreboardScore pack2 = new PacketPlayOutScoreboardScore();
+                setReflectionValue(pack.getClass(), "a",name2);
+                setReflectionValue(pack.getClass(), "b", name);
+                setReflectionValue(pack.getClass(), "c", val);
+                setReflectionValue(pack.getClass(), "d", 0);
+                sendPacket(p, pack2);
             }
             updatePosition(p);
         }
