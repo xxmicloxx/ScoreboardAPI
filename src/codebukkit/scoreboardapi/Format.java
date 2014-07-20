@@ -1,4 +1,4 @@
-package yt.codebukkit.scoreboardapi;
+package codebukkit.scoreboardapi;
 
 import org.bukkit.ChatColor;
 

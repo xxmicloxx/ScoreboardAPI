@@ -1,0 +1,4 @@
+name: ScoreboardAPI
+main: codebukkit.scoreboardapi.ScoreboardAPI
+version: 1.0.0
+    
